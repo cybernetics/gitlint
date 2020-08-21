@@ -25,7 +25,7 @@ except ImportError:
     from unittest.mock import patch  # pylint: disable=no-name-in-module, import-error
 
 from gitlint.git import GitContext
-from gitlint.utils import ustr, LOG_FORMAT, DEFAULT_ENCODING
+from gitlint.utils import ustr, LOG_FORMAT
 
 
 # unittest2's assertRaisesRegex doesn't do unicode comparison.
@@ -81,7 +81,7 @@ class BaseTestCase(unittest.TestCase):
     def get_sample(filename=""):
         """ Read and return the contents of a file in gitlint/tests/samples """
         sample_path = BaseTestCase.get_sample_path(filename)
-        with io.open(sample_path, encoding=DEFAULT_ENCODING) as content:
+        with io.open(sample_path, encoding="UTF-8") as content:
             sample = ustr(content.read())
         return sample
 
@@ -99,7 +99,7 @@ class BaseTestCase(unittest.TestCase):
         """ Utility method to read an expected file from gitlint/tests/expected and return it as a string.
         Optionally replace template variables specified by variable_dict. """
         expected_path = os.path.join(BaseTestCase.EXPECTED_DIR, filename)
-        with io.open(expected_path, encoding=DEFAULT_ENCODING) as content:
+        with io.open(expected_path, encoding="UTF-8") as content:
             expected = ustr(content.read())
 
         if variable_dict:

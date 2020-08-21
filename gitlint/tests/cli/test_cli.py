@@ -272,7 +272,7 @@ class CLITests(BaseTestCase):
 
         with self.tempdir() as tmpdir:
             msg_filename = os.path.join(tmpdir, "msg")
-            with io.open(msg_filename, 'w', encoding=DEFAULT_ENCODING) as f:
+            with io.open(msg_filename, 'w', encoding="UTF-8") as f:
                 f.write(u"WIP: msg-filename tïtle\n")
 
             with patch('gitlint.display.stderr', new=StringIO()) as stderr:
@@ -459,13 +459,14 @@ class CLITests(BaseTestCase):
     @patch('gitlint.cli.get_stdin_data', return_value=False)
     def test_target(self, _):
         """ Test for the --target option """
-        os.environ["LANGUAGE"] = "C"  # Force language to english so we can check for error message
-        result = self.cli.invoke(cli.cli, ["--target", "/tmp"])
-        # We expect gitlint to tell us that /tmp is not a git repo (this proves that it takes the target parameter
-        # into account).
-        expected_path = os.path.realpath("/tmp")
-        self.assertEqual(result.output, "%s is not a git repository.\n" % expected_path)
-        self.assertEqual(result.exit_code, self.GIT_CONTEXT_ERROR_CODE)
+        with self.tempdir() as tmpdir:
+            tmpdir_path = os.path.realpath(tmpdir)
+            os.environ["LANGUAGE"] = "C"  # Force language to english so we can check for error message
+            result = self.cli.invoke(cli.cli, ["--target", tmpdir_path])
+            # We expect gitlint to tell us that /tmp is not a git repo (this proves that it takes the target parameter
+            # into account).
+            self.assertEqual(result.output, "%s is not a git repository.\n" % tmpdir_path)
+            self.assertEqual(result.exit_code, self.GIT_CONTEXT_ERROR_CODE)
 
     def test_target_negative(self):
         """ Negative test for the --target option """

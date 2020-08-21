@@ -97,10 +97,14 @@ jobs:
 
       - name: Tests (test_cli.py only - continue-on-error:true)
         run: tools\windows\run_tests.bat "gitlint\tests\cli\test_cli.py"
+        env:
+          LC_ALL: UTF-8
         continue-on-error: true # Known to fail at this point
 
       - name: Tests (all - continue-on-error:true)
         run: tools\windows\run_tests.bat
+        env:
+          LC_ALL: UTF-8
         continue-on-error: true # Known to fail at this point
 
       - name: Integration tests (continue-on-error:true)

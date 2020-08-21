@@ -53,6 +53,7 @@ def getpreferredencoding():
     # We fallback to UTF-8
     if PLATFORM_IS_WINDOWS:
         default_encoding = "UTF-8"
+        return "UTF-8"
         for env_var in ["LC_ALL", "LC_CTYPE", "LANG"]:
             encoding = os.environ.get(env_var, False)
             if encoding:
