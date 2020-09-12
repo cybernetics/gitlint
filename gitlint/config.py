@@ -367,7 +367,10 @@ class RuleCollection(object):
     def __len__(self):
         return len(self._rules)
 
-    def __str__(self):
+    def __repr__(self):
+        return self.__unicode__()  # pragma: no cover
+
+    def __unicode__(self):
         return_str = ""
         for rule in self._rules.values():
             return_str += u"  {0}: {1}\n".format(rule.id, rule.name)
@@ -391,13 +394,15 @@ class LintConfigBuilder(object):
     normalized, validated and build. Example usage can be found in gitlint.cli.
     """
 
+    RULE_QUALIFIER_SYMBOL = ":"
+
     def __init__(self):
-        self._config_blueprint = {}
+        self._config_blueprint = OrderedDict()
         self._config_path = None
 
     def set_option(self, section, option_name, option_value):
         if section not in self._config_blueprint:
-            self._config_blueprint[section] = {}
+            self._config_blueprint[section] = OrderedDict()
         self._config_blueprint[section][option_name] = option_value
 
     def set_config_from_commit(self, commit):
@@ -444,6 +449,31 @@ class LintConfigBuilder(object):
         except ConfigParserError as e:
             raise LintConfigError(ustr(e))
 
+    def _add_named_rule(self, config, qualified_rule_name):
+        """ Adds a Named Rule """
+
+        # TODO (joris.roovers): clean up code below, then pep8, lint, etc. Should be pretty close to done :-)
+        
+        # Split up named rule in its parts
+        rule_name_parts = qualified_rule_name.split(self.RULE_QUALIFIER_SYMBOL, 1)
+        rule_name_parts[1] = rule_name_parts[1].strip()  # strip leading/trailing whitespace
+        if rule_name_parts[1] == "" or bool(re.search("\\s|:", rule_name_parts[1], re.UNICODE)):
+            raise LintConfigError(u"The rule-name part in '{0}' cannot contain whitespace, colons or be empty".format(qualified_rule_name))
+
+
+        parent_rule = config.rules.find_rule(rule_name_parts[0])
+        if not parent_rule:
+            raise LintConfigError(u"No such rule '{0}' (named rule: '{1}')".format(rule_name_parts[0], qualified_rule_name))
+        canonical_id = parent_rule.__class__.id + self.RULE_QUALIFIER_SYMBOL + rule_name_parts[1]
+        canonical_name = parent_rule.__class__.name + self.RULE_QUALIFIER_SYMBOL + rule_name_parts[1]
+        # If we try to configure the same rule again, then we just overwrite the previous copy
+        # This prevents config for the same rule to be merged between 2 different configurations
+        config.rules.add_rule(parent_rule.__class__, canonical_id, {'is_named': True, 
+                                                                    'name': canonical_name})
+
+        return canonical_id
+
+
     def build(self, config=None):
         """ Build a real LintConfig object by normalizing and validating the options that were previously set on this
         factory. """
@@ -465,6 +495,9 @@ class LintConfigBuilder(object):
             for option_name, option_value in section_dict.items():
                 # Skip over the general section, as we've already done that above
                 if section_name != "general":
+                    if self.RULE_QUALIFIER_SYMBOL in section_name:
+                        section_name = self._add_named_rule(config, section_name)
+
                     config.set_rule_option(section_name, option_name, option_value)
 
         return config
@@ -486,3 +519,4 @@ class LintConfigGenerator(object):
         """ Generates a gitlint config file at the given destination location.
             Expects that the given ```dest``` points to a valid destination. """
         shutil.copyfile(GITLINT_CONFIG_TEMPLATE_SRC_PATH, dest)
+
